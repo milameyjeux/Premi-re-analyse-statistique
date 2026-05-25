@@ -1,0 +1,132 @@
+
+---
+
+# **2. Nuage et point et coefficient de corrélation**  
+
+
+---
+title: "Analyse bivariée : production vs surface"
+toc-title: "Table des matières"
+---
+
+
+Pour un ingénieur agronome, une question importante peut etre : 
+Comment le pays augmente-t-il sa production ? Est-ce en améliorant ses 
+techniques ou en agrandissant ses terres ? 
+On choisit ici d’étudier les 
+variables Production et Surface.
+
+## Nuage de point
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 14
+#| fig-height: 8
+
+
+library(tidyverse)
+library(DT)
+theme_set(theme_minimal(base_size = 16))
+
+# Import/prépa comme avant
+raw_fao_prod <- read.csv("data_raw/production.csv")
+fao_prod <- raw_fao_prod |>
+  select(Zone, Produit, Élément, Année, Unité, Valeur) |>
+  mutate(
+    Zone = str_trim(Zone),
+    Produit = str_trim(Produit),
+    Élément = str_trim(Élément),
+    Unité = str_trim(Unité),
+    Produit = case_when(
+      Produit == "Maïs" ~ "Mais",
+      Produit == "Blé" ~ "Blé",
+      TRUE ~ Produit
+    ),
+    Élément = case_when(
+      Élément == "Superficie récoltée" ~ "Surface",
+      Élément == "Rendement" ~ "Rendement",
+      Élément == "Production" ~ "Production",
+      TRUE ~ Élément
+    )
+  )
+production <- fao_prod |>
+  select(Zone, Produit, Année, Élément, Valeur) |>
+  pivot_wider(names_from = Élément, values_from = Valeur) |>
+  rename(
+    Pays = Zone,
+    Céréale = Produit,
+    Année = Année,
+    Surface = Surface,
+    Rendement = Rendement,
+    Production = Production
+  )
+
+france_ble_prod_surf <- production |>
+  filter(Pays == "France", Céréale == "Blé") |>
+  select(Production, Surface)
+inde_ble_prod_surf <- production |>
+  filter(Pays == "Inde", Céréale == "Blé") |>
+  select(Production, Surface)
+data_nuage <- bind_rows(
+  france_ble_prod_surf |> mutate(Pays = "France"),
+  inde_ble_prod_surf |> mutate(Pays = "Inde")
+)
+
+
+
+ggplot(data = data_nuage, 
+       aes(x = Surface, y = Production, color = Pays)) +
+  geom_point(alpha = 0.6, size = 2) +
+  geom_smooth(method = "lm", se = FALSE, linetype = "dashed") +
+  facet_wrap(~Pays, scales = "free") +
+  scale_color_manual(values = c("France" = "steelblue", "Inde" = "orange")) +
+  labs(title = "Relation entre Surface récoltée et Production de Blé",
+       subtitle = "Comparaison France vs Inde",
+       y = "Production (tonnes)", x = "Surface (ha)")
+    
+```
+
+### Interprétation
+
+Le nuage de points révèle que pour la France et pour l'Inde, la relation
+semble être très linéaire. L'augmentation de la production est donc fortement
+corrélée à la gestion des surfaces, mais malgré une surface bien plus grande, 
+a une production moins efficace (rendements 2–3x inférieurs) et plus variable.
+L’Inde récolte plus de blé en volume total (jusqu’à 90M tonnes) 
+grâce à sa surface immense, mais son rendement à l’hectare reste très faible 
+par rapport à la France.
+Alors que la France a une relation surface-production très stable grâce à des 
+rendements élevés et homogènes (~7 000 kg/ha).
+
+## Coefficient de corrélation
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+reg_fr <- lm(Production ~ Surface, data = france_ble_prod_surf)
+cor_fr <- cor(france_ble_prod_surf$Surface, france_ble_prod_surf$Production)
+reg_ke <- lm(Production ~ Surface, data = inde_ble_prod_surf)
+cor_ke <- cor(inde_ble_prod_surf$Surface, inde_ble_prod_surf$Production)
+
+summary_tbl <- tibble(
+  Pays = c("France", "Inde"),
+  Pente = c(round(coef(reg_fr)[2], 2), round(coef(reg_ke)[2], 2)),
+  Intercept = c(round(coef(reg_fr)[1], 2), round(coef(reg_ke)[1], 2)),
+  Correlation = c(round(cor_fr, 3), round(cor_ke, 3))
+)
+datatable(summary_tbl)
+```
+### Interprétation
+
+
+Avec un coefficient de corrélation très proche de 1 (0.92), la France affiche 
+une corrélation quasi-parfaite. De même pour l'Inde qui a un coefficient
+de corrélation très proche de 1 également (0,96).
+Les deux pentes sont raides, celle de la France l'est légèrement plus que 
+celle de l'Inde ce qui signifie que chaque hectare "rapporte" un peu plus
+de tonnes qu'en Inde. De plus, en France les rendements sont élevés et stables
+avec peu de gaspillage de surface tandis qu'en Inde, la surface est immense, 
+mais les rendements 2-3x inférieurs.

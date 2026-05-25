@@ -1,0 +1,21 @@
+{
+  "hash": "15a295d002923ae4fe4809b746919c32",
+  "result": {
+    "engine": "knitr",
+    "markdown": "\n---\n\n# **2. Nuage et point et coefficient de corrélation**  \n\n\n---\ntitle: \"Analyse bivariée : production vs surface\"\ntoc-title: \"Table des matières\"\n---\n\n\nPour un ingénieur agronome, une question importante peut etre : \nComment le pays augmente-t-il sa production ? Est-ce en améliorant ses \ntechniques ou en agrandissant ses terres ? \nOn choisit ici d’étudier les \nvariables Production et Surface.\n\n## Nuage de point\n\n::: {.cell}\n::: {.cell-output-display}\n![](analyse-bivarie_files/figure-html/unnamed-chunk-1-1.png){width=1344}\n:::\n:::\n\n\n### Interprétation\n\nLe nuage de points révèle que pour la France et pour l'Inde, la relation\nsemble être très linéaire. L'augmentation de la production est donc fortement\ncorrélée à la gestion des surfaces, mais malgré une surface bien plus grande, \na une production moins efficace (rendements 2–3x inférieurs) et plus variable.\nL’Inde récolte plus de blé en volume total (jusqu’à 90M tonnes) \ngrâce à sa surface immense, mais son rendement à l’hectare reste très faible \npar rapport à la France.\nAlors que la France a une relation surface-production très stable grâce à des \nrendements élevés et homogènes (~7 000 kg/ha).\n\n## Coefficient de corrélation\n\n\n::: {.cell}\n::: {.cell-output-display}\n\n```{=html}\n<div class=\"datatables html-widget html-fill-item\" id=\"htmlwidget-de1444576bed25d4cdec\" style=\"width:100%;height:auto;\"></div>\n<script type=\"application/json\" data-for=\"htmlwidget-de1444576bed25d4cdec\">{\"x\":{\"filter\":\"none\",\"vertical\":false,\"data\":[[\"1\",\"2\"],[\"France\",\"Inde\"],[16.81,5.37],[-52033200.25,-71142374.68000001],[0.918,0.96]],\"container\":\"<table class=\\\"display\\\">\\n  <thead>\\n    <tr>\\n      <th> <\\/th>\\n      <th>Pays<\\/th>\\n      <th>Pente<\\/th>\\n      <th>Intercept<\\/th>\\n      <th>Correlation<\\/th>\\n    <\\/tr>\\n  <\\/thead>\\n<\\/table>\",\"options\":{\"columnDefs\":[{\"className\":\"dt-right\",\"targets\":[2,3,4]},{\"orderable\":false,\"targets\":0},{\"name\":\" \",\"targets\":0},{\"name\":\"Pays\",\"targets\":1},{\"name\":\"Pente\",\"targets\":2},{\"name\":\"Intercept\",\"targets\":3},{\"name\":\"Correlation\",\"targets\":4}],\"order\":[],\"autoWidth\":false,\"orderClasses\":false}},\"evals\":[],\"jsHooks\":[]}</script>\n```\n\n:::\n:::\n\n### Interprétation\n\n\nAvec un coefficient de corrélation très proche de 1 (0.92), la France affiche \nune corrélation quasi-parfaite. De même pour l'Inde qui a un coefficient\nde corrélation très proche de 1 également (0,96).\nLes deux pentes sont raides, celle de la France l'est légèrement plus que \ncelle de l'Inde ce qui signifie que chaque hectare \"rapporte\" un peu plus\nde tonnes qu'en Inde. De plus, en France les rendements sont élevés et stables\navec peu de gaspillage de surface tandis qu'en Inde, la surface est immense, \nmais les rendements 2-3x inférieurs.",
+    "supporting": [
+      "analyse-bivarie_files"
+    ],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": {
+      "include-in-header": [
+        "<link href=\"site_libs/htmltools-fill-0.5.9/fill.css\" rel=\"stylesheet\" />\n<script src=\"site_libs/htmlwidgets-1.6.4/htmlwidgets.js\"></script>\n<link href=\"site_libs/datatables-css-0.0.0/datatables-crosstalk.css\" rel=\"stylesheet\" />\n<script src=\"site_libs/datatables-binding-0.34.0/datatables.js\"></script>\n<script src=\"site_libs/jquery-3.6.0/jquery-3.6.0.min.js\"></script>\n<link href=\"site_libs/dt-core-1.13.6/css/jquery.dataTables.min.css\" rel=\"stylesheet\" />\n<link href=\"site_libs/dt-core-1.13.6/css/jquery.dataTables.extra.css\" rel=\"stylesheet\" />\n<script src=\"site_libs/dt-core-1.13.6/js/jquery.dataTables.min.js\"></script>\n<link href=\"site_libs/crosstalk-1.2.2/css/crosstalk.min.css\" rel=\"stylesheet\" />\n<script src=\"site_libs/crosstalk-1.2.2/js/crosstalk.min.js\"></script>\n"
+      ]
+    },
+    "engineDependencies": {},
+    "preserve": {},
+    "postProcess": true
+  }
+}

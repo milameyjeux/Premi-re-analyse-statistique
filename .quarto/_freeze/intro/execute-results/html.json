@@ -1,0 +1,15 @@
+{
+  "hash": "74b917e7f9ef1fc0abc6e8d675aa8b01",
+  "result": {
+    "engine": "knitr",
+    "markdown": "---\ntitle: \"Introduction\"\ntoc-title: \"Table des matières\"\n---\n\n# Outil statistiques pour :\n\n- **Inde** (Asie)\n- **France** (Europe)\n\n# ISTOM\n- **Promotion 116**\n- **Année 2025 - 2026**\n- **PASD**\n\n# Auteur-es\n- GENOT MAUVOIS Simao\n- VANLOO Thomas\n- TROUILLE--ARNOULD Eloïse\n- MEYSSARD Mila\n\n---\n# Présentation\n\nNous avons choisi de comparer la **France** et **l'Inde** sur la **culture du blé**, en combinant **statistiques descriptives**, **analyses graphiques**, **analyse univariée** et **bivariée** issues des données FAOSTAT.\n\nCette comparaison est pertinente car elle oppose un leader mondial de l'exportation (France) à un pays dont la sécurité alimentaire dépend fortement de l'amélioration de ses rendements céréaliers, face à une demande croissante (Inde).\n\n# Données et préparation\n\n\n::: {.cell}\n\n```{.r .cell-code}\nlibrary(tidyverse)\nlibrary(gt)\nlibrary(DT)\ntheme_set(theme_minimal(base_size = 16))\n\n# Import des données de production\nraw_fao_prod <- read.csv(\"data_raw/production.csv\")\n\n# Nettoyage et transformation\nfao_prod <- raw_fao_prod |>\n  select(Zone, Produit, Élément, Année, Unité, Valeur) |>\n  mutate(\n    Zone = str_trim(Zone),\n    Produit = str_trim(Produit),\n    Élément = str_trim(Élément),\n    Unité = str_trim(Unité),\n    Produit = case_when(\n      Produit == \"Maïs\" ~ \"Mais\",\n      Produit == \"Blé\" ~ \"Blé\",\n      TRUE ~ Produit\n    ),\n    Élément = case_when(\n      Élément == \"Superficie récoltée\" ~ \"Surface\",\n      Élément == \"Rendement\" ~ \"Rendement\",\n      Élément == \"Production\" ~ \"Production\",\n      TRUE ~ Élément\n    )\n  )\n\nproduction <- fao_prod |>\n  select(Zone, Produit, Année, Élément, Valeur) |>\n  pivot_wider(names_from = Élément, values_from = Valeur) |>\n  rename(\n    Pays = Zone,\n    Céréale = Produit,\n    Année = Année,\n    Surface = Surface,\n    Rendement = Rendement,\n    Production = Production\n  )\n\n# Afficher un aperçu des données\nhead(production, 10)\n```\n\n::: {.cell-output .cell-output-stdout}\n\n```\n# A tibble: 10 × 6\n   Pays   Céréale Année Surface Rendement Production\n   <chr>  <chr>   <int>   <dbl>     <dbl>      <dbl>\n 1 France Blé      1961 3997300     2395     9573520\n 2 France Blé      1962 4570000     3075.   14053770\n 3 France Blé      1963 3849500     2662.   10248960\n 4 France Blé      1964 4388200     3153.   13837700\n 5 France Blé      1965 4520000     3266.   14760000\n 6 France Blé      1966 3992300     2830.   11296620\n 7 France Blé      1967 3928900     3636.   14287540\n 8 France Blé      1968 4089700     3664.   14984900\n 9 France Blé      1969 4034200     3581.   14446000\n10 France Blé      1970 3696000     3422.   12649000\n```\n\n\n:::\n:::\n\n",
+    "supporting": [],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": {},
+    "engineDependencies": {},
+    "preserve": {},
+    "postProcess": true
+  }
+}

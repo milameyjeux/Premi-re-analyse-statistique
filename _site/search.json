@@ -1,0 +1,163 @@
+[
+  {
+    "objectID": "conclusion.html",
+    "href": "conclusion.html",
+    "title": "Conclusion",
+    "section": "",
+    "text": "L’analyse montre un écart très marqué entre la France et l’Inde concernant la culture du blé.\nLa France affiche : - Des rendements par hectare bien supérieurs (environ 2,6x plus élevés) - Une plus grande homogénéité dans les rendements - Une productivité nettement plus élevée et stable\nL’Inde exploite : - Des surfaces bien plus vastes - Des rendements globalement faibles - Une stabilité moindre des rendements\n\n\n\nLes statistiques révèlent que la France surpasse l’Inde à la fois en termes de moyenne, de minimum et de maximum atteints.\nLa relation entre surface cultivée et production est forte dans les deux pays, mais chaque hectare français “rapporte” bien plus de blé que son équivalent indien.\n\n\n\nLa France illustre la réussite d’une agriculture intensive et performante, fondée sur la maîtrise technique et l’efficacité.\nL’Inde, malgré son importance agricole mondiale en volume, doit relever les défis d’une meilleure productivité pour améliorer sa sécurité alimentaire face à une demande croissante.\nCette comparaison souligne l’importance de l’intensification agricole comme levier pour améliorer les rendements et la sécurité alimentaire dans les pays en développement."
+  },
+  {
+    "objectID": "analyse-univarie.html",
+    "href": "analyse-univarie.html",
+    "title": "Analyse univariée",
+    "section": "",
+    "text": "Page univariée\nUn onglet."
+  },
+  {
+    "objectID": "analyse-univarie.html#analyse-univarie.qmd",
+    "href": "analyse-univarie.html#analyse-univarie.qmd",
+    "title": "Analyse Statistique",
+    "section": "2. analyse-univarie.qmd",
+    "text": "2. analyse-univarie.qmd\n(Onglet “Analyse univariée”)\n---\ntitle: \"Analyse univariée\"\n---\n\n# Analyse univariée : Rendement du blé\n\n\n::: {.cell}\n\n```{.r .cell-code}\nlibrary(tidyverse)\n\nWarning: le package 'tidyverse' a été compilé avec la version R 4.5.3\n\n\n── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──\n✔ dplyr     1.2.0     ✔ readr     2.1.6\n✔ forcats   1.0.1     ✔ stringr   1.6.0\n✔ ggplot2   4.0.2     ✔ tibble    3.3.1\n✔ lubridate 1.9.5     ✔ tidyr     1.3.2\n✔ purrr     1.2.1     \n── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──\n✖ dplyr::filter() masks stats::filter()\n✖ dplyr::lag()    masks stats::lag()\nℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors\n\nlibrary(gt)\n\nWarning: le package 'gt' a été compilé avec la version R 4.5.3\n\ntheme_set(theme_minimal(base_size = 16))\n\n# Import et préparation rapide (identique à index)\nraw_fao_prod &lt;- read.csv(\"data_raw/production.csv\")\nfao_prod &lt;- raw_fao_prod |&gt;\n  select(Zone, Produit, Élément, Année, Unité, Valeur) |&gt;\n  mutate(\n    Zone = str_trim(Zone),\n    Produit = str_trim(Produit),\n    Élément = str_trim(Élément),\n    Unité = str_trim(Unité),\n    Produit = case_when(\n      Produit == \"Maïs\" ~ \"Mais\",\n      Produit == \"Blé\" ~ \"Blé\",\n      TRUE ~ Produit\n    ),\n    Élément = case_when(\n      Élément == \"Superficie récoltée\" ~ \"Surface\",\n      Élément == \"Rendement\" ~ \"Rendement\",\n      Élément == \"Production\" ~ \"Production\",\n      TRUE ~ Élément\n    )\n  )\nproduction &lt;- fao_prod |&gt;\n  select(Zone, Produit, Année, Élément, Valeur) |&gt;\n  pivot_wider(names_from = Élément, values_from = Valeur) |&gt;\n  rename(\n    Pays = Zone,\n    Céréale = Produit,\n    Année = Année,\n    Surface = Surface,\n    Rendement = Rendement,\n    Production = Production\n  )\n\nfrance_rdt_ble &lt;- production |&gt;\n  filter(Pays == \"France\", Céréale == \"Blé\") |&gt;\n  select(Rendement)\ninde_ble &lt;- production |&gt;\n  filter(Pays == \"Inde\", Céréale == \"Blé\") |&gt;\n  select(Surface, Rendement, Production)\n\n# Fonction stats\ncalc_stats &lt;- function(df) {\n  df |&gt; \n    summarise(\n      Min = min(Rendement, na.rm = TRUE),\n      `1er Qu.` = quantile(Rendement, 0.25, na.rm = TRUE),\n      Médiane = median(Rendement, na.rm = TRUE),\n      Moyenne = mean(Rendement, na.rm = TRUE),\n      `3ème Qu.` = quantile(Rendement, 0.75, na.rm = TRUE),\n      Max = max(Rendement, na.rm = TRUE),\n      `Écart-type` = sd(Rendement, na.rm = TRUE),\n      Variance = var(Rendement, na.rm = TRUE)\n    )\n}\nstats_fr &lt;- calc_stats(france_rdt_ble)\nstats_in &lt;- calc_stats(inde_ble)\nstats_compare &lt;- bind_rows(\n  stats_fr |&gt; mutate(Pays = \"France\"),\n  stats_in |&gt; mutate(Pays = \"Inde\")\n) |&gt; \n  pivot_longer(cols = -Pays, names_to = \"Indicateur\", values_to = \"Valeur\") |&gt; \n  pivot_wider(names_from = Pays, values_from = Valeur)\n  \n\n\nstats_compare |&gt;\n  gt() |&gt;\n  tab_header(\n    title = \"Comparaison Statistique du Rendement\",\n    subtitle = \"Blé : France vs Inde (Données FAOSTAT)\"\n  ) |&gt;\n  fmt_number(\n    columns = c(France, Inde),\n    decimals = 2,\n    sep_mark = \" \"\n  ) |&gt;\n  cols_label(\n    Indicateur = \"Statistique\",\n    France = \"France (kg/ha)\",\n    Inde = \"Inde (kg/ha)\"\n  ) |&gt;\n  tab_options(\n    heading.background.color = \"#2c3e50\",\n    column_labels.background.color = \"#f2f2f2\",\n    table.width = pct(100)\n  )\n\n\n\n\n\n\n\nComparaison Statistique du Rendement\n\n\nBlé : France vs Inde (Données FAOSTAT)\n\n\nStatistique\nFrance (kg/ha)\nInde (kg/ha)\n\n\n\n\nMin\n2 395.00\n729.90\n\n\n1er Qu.\n4 580.75\n1 404.38\n\n\nMédiane\n6 373.60\n2 353.15\n\n\nMoyenne\n5 763.68\n2 194.59\n\n\n3ème Qu.\n7 007.65\n2 784.43\n\n\nMax\n7 800.80\n3 559.00\n\n\nÉcart-type\n1 521.05\n848.76\n\n\nVariance\n2 313 591.97\n720 394.28\n\n\n\n\n\n\ndata_boxplot &lt;- bind_rows(\n  france_rdt_ble |&gt; mutate(Pays = \"France\"),\n  inde_ble |&gt; mutate(Pays = \"Inde\")\n)\nggplot(data = data_boxplot, \n       aes(x = Pays, y = Rendement, fill = Pays)) +\n  geom_boxplot(alpha = 0.7, outlier.color = \"red\", outlier.shape = 16) +\n  scale_fill_manual(values = c(\"France\" = \"lightgreen\", \"Inde\" = \"orange\")) +\n  labs(title = \"Distribution des rendements du Blé : France vs Inde\",\n       y = \"Rendement (kg/ha)\", x = \"Pays\")\n\n\n\n\n\n\n\ndata_hist &lt;- bind_rows(\n  france_rdt_ble |&gt; mutate(Pays = \"France\"),\n  inde_ble |&gt; mutate(Pays = \"Inde\")\n)\nggplot(data = data_hist, \n       aes(x = Rendement, fill = Pays)) +\n  geom_histogram(bins = 15, color = \"white\", alpha = 0.8) +\n  facet_wrap(~Pays, scales = \"free_x\") + \n  scale_fill_manual(values = c(\"France\" = \"steelblue\", \"Inde\" = \"orange\")) +\n  theme_minimal() +\n  labs(\n    title = \"Comparaison de la distribution des rendements de Blé\",\n    subtitle = \"France vs Inde (Échelles adaptées)\",\n    x = \"Rendement (kg/ha)\",\n    y = \"Nombre d'années (Fréquence)\"\n  ) +\n  theme(legend.position = \"none\")\n\n\n\n\n\n\n\n:::"
+  },
+  {
+    "objectID": "analyse-bivarie.html#analyse-bivarie.qmd",
+    "href": "analyse-bivarie.html#analyse-bivarie.qmd",
+    "title": "Analyse Statistique",
+    "section": "3. analyse-bivarie.qmd",
+    "text": "3. analyse-bivarie.qmd\n(Onglet “Analyse bivariée”)\n---\ntitle: \"Analyse bivariée\"\n---\n\n# Analyse bivariée : Production vs Surface\n\n\n::: {.cell}\n\n```{.r .cell-code}\nlibrary(tidyverse)\n\nWarning: le package 'tidyverse' a été compilé avec la version R 4.5.3\n\n\n── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──\n✔ dplyr     1.2.0     ✔ readr     2.1.6\n✔ forcats   1.0.1     ✔ stringr   1.6.0\n✔ ggplot2   4.0.2     ✔ tibble    3.3.1\n✔ lubridate 1.9.5     ✔ tidyr     1.3.2\n✔ purrr     1.2.1     \n── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──\n✖ dplyr::filter() masks stats::filter()\n✖ dplyr::lag()    masks stats::lag()\nℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors\n\nlibrary(DT)\n\nWarning: le package 'DT' a été compilé avec la version R 4.5.3\n\ntheme_set(theme_minimal(base_size = 16))\n\n# Import/prépa comme avant\nraw_fao_prod &lt;- read.csv(\"data_raw/production.csv\")\nfao_prod &lt;- raw_fao_prod |&gt;\n  select(Zone, Produit, Élément, Année, Unité, Valeur) |&gt;\n  mutate(\n    Zone = str_trim(Zone),\n    Produit = str_trim(Produit),\n    Élément = str_trim(Élément),\n    Unité = str_trim(Unité),\n    Produit = case_when(\n      Produit == \"Maïs\" ~ \"Mais\",\n      Produit == \"Blé\" ~ \"Blé\",\n      TRUE ~ Produit\n    ),\n    Élément = case_when(\n      Élément == \"Superficie récoltée\" ~ \"Surface\",\n      Élément == \"Rendement\" ~ \"Rendement\",\n      Élément == \"Production\" ~ \"Production\",\n      TRUE ~ Élément\n    )\n  )\nproduction &lt;- fao_prod |&gt;\n  select(Zone, Produit, Année, Élément, Valeur) |&gt;\n  pivot_wider(names_from = Élément, values_from = Valeur) |&gt;\n  rename(\n    Pays = Zone,\n    Céréale = Produit,\n    Année = Année,\n    Surface = Surface,\n    Rendement = Rendement,\n    Production = Production\n  )\n\nfrance_ble_prod_surf &lt;- production |&gt;\n  filter(Pays == \"France\", Céréale == \"Blé\") |&gt;\n  select(Production, Surface)\ninde_ble_prod_surf &lt;- production |&gt;\n  filter(Pays == \"Inde\", Céréale == \"Blé\") |&gt;\n  select(Production, Surface)\ndata_nuage &lt;- bind_rows(\n  france_ble_prod_surf |&gt; mutate(Pays = \"France\"),\n  inde_ble_prod_surf |&gt; mutate(Pays = \"Inde\")\n)\n\n\n\n\n\nggplot(data = data_nuage, \n       aes(x = Surface, y = Production, color = Pays)) +\n  geom_point(alpha = 0.6, size = 2) +\n  geom_smooth(method = \"lm\", se = FALSE, linetype = \"dashed\") +\n  facet_wrap(~Pays, scales = \"free\") +\n  scale_color_manual(values = c(\"France\" = \"steelblue\", \"Inde\" = \"orange\")) +\n  labs(title = \"Relation entre Surface récoltée et Production de Blé\",\n       subtitle = \"Comparaison France vs Inde\",\n       y = \"Production (tonnes)\", x = \"Surface (ha)\")\n\n`geom_smooth()` using formula = 'y ~ x'\n\n\n\n\n\n\n\n\n:::"
+  },
+  {
+    "objectID": "conclusion.html#conclusion.qmd",
+    "href": "conclusion.html#conclusion.qmd",
+    "title": "Conclusion",
+    "section": "4. conclusion.qmd",
+    "text": "4. conclusion.qmd\n(Onglet “Conclusion”)"
+  },
+  {
+    "objectID": "conclusion.html#markdown",
+    "href": "conclusion.html#markdown",
+    "title": "Première Analyse en Statistique Descriptive",
+    "section": "```markdown",
+    "text": "```markdown"
+  },
+  {
+    "objectID": "conclusion.html#title-conclusion",
+    "href": "conclusion.html#title-conclusion",
+    "title": "Première Analyse en Statistique Descriptive",
+    "section": "title: “Conclusion”",
+    "text": "title: “Conclusion”\nConclusion\nL’analyse montre un écart très marqué entre la France et l’Inde concernant la\nculture du blé. La France affiche des rendements par hectare bien supérieurs,\nune plus grande homogénéité et une productivité nettement plus élevée.\nÀ l’inverse, l’Inde exploite des surfaces bien plus vastes mais avec des\nrendements globalement faibles et peu de variabilité.\nLes statistiques révèlent que la France surpasse l’Inde à la fois en termes\nde moyenne, de minimum et de maximum atteints. La relation entre surface\ncultivée et production est forte dans les deux pays, mais chaque hectare\nfrançais “rapporte” bien plus de blé que son équivalent indien.\nEn résumé, la France illustre la réussite d’une agriculture intensive et\nperformante, alors que l’Inde, malgré son importance agricole, doit relever\nles défis d’une meilleure productivité pour améliorer sa sécurité alimentaire."
+  },
+  {
+    "objectID": "intro.html",
+    "href": "intro.html",
+    "title": "Introduction",
+    "section": "",
+    "text": "Outil statistiques pour :\n\nInde (Asie)\nFrance (Europe)\n\n\n\nISTOM\n\nPromotion 116\nAnnée 2025 - 2026\nPASD\n\n\n\nAuteur-es\n\nGENOT MAUVOIS Simao\nVANLOO Thomas\nTROUILLE–ARNOULD Eloïse\nMEYSSARD Mila\n\n\n\n\nPrésentation\nNous avons choisi de comparer la France et l’Inde sur la culture du blé, en combinant statistiques descriptives, analyses graphiques, analyse univariée et bivariée issues des données FAOSTAT.\nCette comparaison est pertinente car elle oppose un leader mondial de l’exportation (France) à un pays dont la sécurité alimentaire dépend fortement de l’amélioration de ses rendements céréaliers, face à une demande croissante (Inde).\n\n\nDonnées et préparation\n\nlibrary(tidyverse)\nlibrary(gt)\nlibrary(DT)\ntheme_set(theme_minimal(base_size = 16))\n\n# Import des données de production\nraw_fao_prod &lt;- read.csv(\"data_raw/production.csv\")\n\n# Nettoyage et transformation\nfao_prod &lt;- raw_fao_prod |&gt;\n  select(Zone, Produit, Élément, Année, Unité, Valeur) |&gt;\n  mutate(\n    Zone = str_trim(Zone),\n    Produit = str_trim(Produit),\n    Élément = str_trim(Élément),\n    Unité = str_trim(Unité),\n    Produit = case_when(\n      Produit == \"Maïs\" ~ \"Mais\",\n      Produit == \"Blé\" ~ \"Blé\",\n      TRUE ~ Produit\n    ),\n    Élément = case_when(\n      Élément == \"Superficie récoltée\" ~ \"Surface\",\n      Élément == \"Rendement\" ~ \"Rendement\",\n      Élément == \"Production\" ~ \"Production\",\n      TRUE ~ Élément\n    )\n  )\n\nproduction &lt;- fao_prod |&gt;\n  select(Zone, Produit, Année, Élément, Valeur) |&gt;\n  pivot_wider(names_from = Élément, values_from = Valeur) |&gt;\n  rename(\n    Pays = Zone,\n    Céréale = Produit,\n    Année = Année,\n    Surface = Surface,\n    Rendement = Rendement,\n    Production = Production\n  )\n\n# Afficher un aperçu des données\nhead(production, 10)\n\n# A tibble: 10 × 6\n   Pays   Céréale Année Surface Rendement Production\n   &lt;chr&gt;  &lt;chr&gt;   &lt;int&gt;   &lt;dbl&gt;     &lt;dbl&gt;      &lt;dbl&gt;\n 1 France Blé      1961 3997300     2395     9573520\n 2 France Blé      1962 4570000     3075.   14053770\n 3 France Blé      1963 3849500     2662.   10248960\n 4 France Blé      1964 4388200     3153.   13837700\n 5 France Blé      1965 4520000     3266.   14760000\n 6 France Blé      1966 3992300     2830.   11296620\n 7 France Blé      1967 3928900     3636.   14287540\n 8 France Blé      1968 4089700     3664.   14984900\n 9 France Blé      1969 4034200     3581.   14446000\n10 France Blé      1970 3696000     3422.   12649000"
+  },
+  {
+    "objectID": "conclusion.html#conclusion",
+    "href": "conclusion.html#conclusion",
+    "title": "Première Analyse en Statistique Descriptive",
+    "section": "4. conclusion",
+    "text": "4. conclusion\n(Onglet “Conclusion”)"
+  },
+  {
+    "objectID": "analyse-univarie.html#analyse-univarie",
+    "href": "analyse-univarie.html#analyse-univarie",
+    "title": "Analyse univariée",
+    "section": "2. analyse-univarie",
+    "text": "2. analyse-univarie"
+  },
+  {
+    "objectID": "analyse-bivarie.html#analyse-bivarie",
+    "href": "analyse-bivarie.html#analyse-bivarie",
+    "title": "Analyse bivariée",
+    "section": "3. analyse-bivarie",
+    "text": "3. analyse-bivarie"
+  },
+  {
+    "objectID": "conclusion.html#synthèse-de-lanalyse",
+    "href": "conclusion.html#synthèse-de-lanalyse",
+    "title": "Conclusion",
+    "section": "",
+    "text": "L’analyse montre un écart très marqué entre la France et l’Inde concernant la culture du blé.\nLa France affiche : - Des rendements par hectare bien supérieurs (environ 2,6x plus élevés) - Une plus grande homogénéité dans les rendements - Une productivité nettement plus élevée et stable\nL’Inde exploite : - Des surfaces bien plus vastes - Des rendements globalement faibles - Une stabilité moindre des rendements"
+  },
+  {
+    "objectID": "conclusion.html#résultats-clés",
+    "href": "conclusion.html#résultats-clés",
+    "title": "Conclusion",
+    "section": "",
+    "text": "Les statistiques révèlent que la France surpasse l’Inde à la fois en termes de moyenne, de minimum et de maximum atteints.\nLa relation entre surface cultivée et production est forte dans les deux pays, mais chaque hectare français “rapporte” bien plus de blé que son équivalent indien."
+  },
+  {
+    "objectID": "conclusion.html#en-résumé",
+    "href": "conclusion.html#en-résumé",
+    "title": "Conclusion",
+    "section": "",
+    "text": "La France illustre la réussite d’une agriculture intensive et performante, fondée sur la maîtrise technique et l’efficacité.\nL’Inde, malgré son importance agricole mondiale en volume, doit relever les défis d’une meilleure productivité pour améliorer sa sécurité alimentaire face à une demande croissante.\nCette comparaison souligne l’importance de l’intensification agricole comme levier pour améliorer les rendements et la sécurité alimentaire dans les pays en développement."
+  },
+  {
+    "objectID": "analyse-bivarie.html#nuage-de-point",
+    "href": "analyse-bivarie.html#nuage-de-point",
+    "title": "Analyse bivariée : production vs surface",
+    "section": "Nuage de point",
+    "text": "Nuage de point\n\n\n\n\n\n\n\n\n\n\nInterprétation\nLe nuage de points révèle que pour la France et pour l’Inde, la relation semble être très linéaire. L’augmentation de la production est donc fortement corrélée à la gestion des surfaces, mais malgré une surface bien plus grande, a une production moins efficace (rendements 2–3x inférieurs) et plus variable. L’Inde récolte plus de blé en volume total (jusqu’à 90M tonnes) grâce à sa surface immense, mais son rendement à l’hectare reste très faible par rapport à la France. Alors que la France a une relation surface-production très stable grâce à des rendements élevés et homogènes (~7 000 kg/ha)."
+  },
+  {
+    "objectID": "analyse-univarie.html#comparaison-statistique-du-rendement",
+    "href": "analyse-univarie.html#comparaison-statistique-du-rendement",
+    "title": "Analyse univariée",
+    "section": "Comparaison Statistique du Rendement",
+    "text": "Comparaison Statistique du Rendement\n\n\n\n\n\n\n\n\nComparaison Statistique du Rendement\n\n\nBlé : France vs Inde (Données FAOSTAT)\n\n\nStatistique\nFrance (kg/ha)\nInde (kg/ha)\n\n\n\n\nMin\n2 395.00\n729.90\n\n\n1er Qu.\n4 580.75\n1 404.38\n\n\nMédiane\n6 373.60\n2 353.15\n\n\nMoyenne\n5 763.68\n2 194.59\n\n\n3ème Qu.\n7 007.65\n2 784.43\n\n\nMax\n7 800.80\n3 559.00\n\n\nÉcart-type\n1 521.05\n848.76\n\n\nVariance\n2 313 591.97\n720 394.28\n\n\n\n\n\n\n\n\nInterprétation\nOn observe une différence importante entre le rendement de la France et de l’Inde. Le rendement de la France est environ 2,6 fois plus grande que celle de l’Inde, et la médiane confirme cette tendance : les 50% des exploitations françaises dépassent 6 373 kg/ha, contre 2 353 kg/ha en Inde. De plus, le minimim français soit le pire rendement est 3,3 fois supérieur à celui de l’Inde, et le record français 2,2 fois plus grand qu’en Inde ce qui confirme la productivité plus élevée en France. Dans les deux pays, il y a un écart important entre les exploitations performantes et les autres. En inde cet écart est plus extrême, la moyenne est inférieure à la médiane, ce qui suggère une majorité d’exploitations à faible rendement et une minorité très performante. Mais en Inde, la variance 328 fois plus élevée que sa moyenne indique une forte instabilité des récoltes, mais en France, la variance est 3,2 fois supérieure (2,3M&gt;720K), confirmant des disparités plus marquées en France. Nous pouvons mieux visualiser grace au boxplot :"
+  },
+  {
+    "objectID": "analyse-univarie.html#boxplot",
+    "href": "analyse-univarie.html#boxplot",
+    "title": "Analyse univariée",
+    "section": "Boxplot",
+    "text": "Boxplot\n\n\n\n\n\n\n\n\n\n\nInterprétation\nLe boxplot pour la France est situé très haut sur l’axe des ordonnées, ce qui témoigne d’une haute performance, sa boîte est aussi très large, ce qui signifie que les exploitations françaises ont des rendements très variables (de 4 580 à 7 000 kh/ha pour 50% d’entre elles). De plus, les moustaches sont plus étendues, ce qui confirme la variabilité plus 2levée qu’en Inde. On peut aussi voir avec les moustaches que 25% des exploitations françaises les moins performantes en France produisent autant que les 25% les plus performantes en Inde. La boîte de l’Inde est plus étroite et plus basse : la majorité des exploitations ont des rendements proches les uns des autres, plus homogène qu’en France mais globalement faibles. L’asymétrie dans les deux pays montre que quelques exploitations sont peu productives et tirent les moyennes vers le bas."
+  },
+  {
+    "objectID": "analyse-univarie.html#histogramme",
+    "href": "analyse-univarie.html#histogramme",
+    "title": "Analyse univariée",
+    "section": "Histogramme",
+    "text": "Histogramme\n\n\n\n\n\n\n\n\n\n\nInterprétation\nLa France et l’Inde on des profils de rendement radicalement différents, reflétant des réalités agricoles opposés. La France produit systématiquement 3 à 6 fois plus de blé que l’Inde, avec une variabilité liée au climat, tandis que l’Inde alterne entre des rendements très bas (sécheresse) et moyens (années favorables), sans jamais atteindre les sommets français. Pour la France, le pic dominant est à 6 000-6 500 kg/ha, pendant environ 12 années et le deuxième pic est à 4 000- 4 500 kg/ha pendant environ 6 ans, Quelques années à 2 000-3 000 kg/ha et &gt;7 000 kg/ha, ce qui montre une variabilité élevée, mais les rendements toujours élevé. L’inde a 2 pics distincts : -1 000–1 500 kg/ha (fréquent, ~7 années) → Majorité des années. -2 500–3 000 kg/ha (~8 années) → Années/regions favorables. L’histogramme montre que la France a des rendements groupés autour de 6 000 kg/ha, tandis que l’Inde alterne entre 1 000–1 500 kg/ha et 2 500–3 000 kg/ha, sans jamais atteindre les niveaux français. Aucun rendement &gt; 3 500 kg/ha → Plafond bas. L’écart est flagrant et systématique."
+  },
+  {
+    "objectID": "analyse-bivarie.html#coefficient-de-corrélation",
+    "href": "analyse-bivarie.html#coefficient-de-corrélation",
+    "title": "Analyse bivariée : production vs surface",
+    "section": "Coefficient de corrélation",
+    "text": "Coefficient de corrélation\n\n\n\n\n\n\n\nInterprétation\nAvec un coefficient de corrélation très proche de 1 (0.92), la France affiche une corrélation quasi-parfaite. De même pour l’Inde qui a un coefficient de corrélation très proche de 1 également (0,96). Les deux pentes sont raides, celle de la France l’est légèrement plus que celle de l’Inde ce qui signifie que chaque hectare “rapporte” un peu plus de tonnes qu’en Inde. De plus, en France les rendements sont élevés et stables avec peu de gaspillage de surface tandis qu’en Inde, la surface est immense, mais les rendements 2-3x inférieurs."
+  },
+  {
+    "objectID": "analyse-univarie.html#analyse-univariée",
+    "href": "analyse-univarie.html#analyse-univariée",
+    "title": "Analyse univariée",
+    "section": "1. analyse-univariée",
+    "text": "1. analyse-univariée"
+  },
+  {
+    "objectID": "analyse-bivarie.html#analyse-bivariée",
+    "href": "analyse-bivarie.html#analyse-bivariée",
+    "title": "Analyse bivariée",
+    "section": "2. analyse-bivariée",
+    "text": "2. analyse-bivariée"
+  },
+  {
+    "objectID": "analyse-univarie.html#comparaison-statistique-boxplot-et-histogramme",
+    "href": "analyse-univarie.html#comparaison-statistique-boxplot-et-histogramme",
+    "title": "Analyse univariée",
+    "section": "1. Comparaison statistique, Boxplot et histogramme",
+    "text": "1. Comparaison statistique, Boxplot et histogramme"
+  },
+  {
+    "objectID": "analyse-bivarie.html#nuage-et-point-et-coefficient-de-corrélation",
+    "href": "analyse-bivarie.html#nuage-et-point-et-coefficient-de-corrélation",
+    "title": "Analyse bivariée : production vs surface",
+    "section": "2. Nuage et point et coefficient de corrélation",
+    "text": "2. Nuage et point et coefficient de corrélation\nPour un ingénieur agronome, une question importante peut etre : Comment le pays augmente-t-il sa production ? Est-ce en améliorant ses techniques ou en agrandissant ses terres ? On choisit ici d’étudier les variables Production et Surface."
+  }
+]

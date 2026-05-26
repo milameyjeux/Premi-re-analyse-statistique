@@ -4,4 +4,4 @@ title: "Première Analyse en Statistique Descriptive"
 
 # Bienvenue ! 👋
 
-Explorez l'analyse statistique de la production du blé en France et en Inde.
+Voici notre analyse statistique de la production du blé en France et en Inde.

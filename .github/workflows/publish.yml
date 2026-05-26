@@ -21,6 +21,8 @@ jobs:
           install.packages("rmarkdown")
           install.packages("knitr")
           install.packages("tidyverse")
+          install.packages("DT")
+          install.packages("gt")
         shell: Rscript {0}
 
       - name: Set up Quarto

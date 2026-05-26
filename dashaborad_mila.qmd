@@ -1,0 +1,356 @@
+---
+title: "Première Analyse en Statistique Descriptive"
+format: 
+  dashboard:
+    logo: img/Logo_simple_ISTOM_Couleurs_HD.png
+    theme: [sandstone, theme/custom.scss]
+    nav-buttons: [link-45deg]
+    github: https://github.com/votre-depot
+fig-width: 10
+fig-asp: 0.4
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(tidyverse)
+library(scales)
+library(DT)
+library(gt)
+
+# Thème visuel pour les graphiques que je propose d'utiliser
+theme_set(theme_minimal(base_size = 16))
+```
+```{r}
+# IMPORTATION DES DONNEES
+raw_fao_prod <- read.csv("data_raw/production.csv")
+raw_fao_val_prod <- read.csv("data_raw/valeur_production.csv")
+raw_fao_secu_alim <- read.csv("data_raw/securite_alimentaire.csv")
+raw_fao_demographie <- read.csv("data_raw/demographie.csv")
+```
+
+
+# Analyse exploratoire : Blé France vs Inde
+
+
+
+## Données
+
+
+```{r}
+# IMPORTATION DES DONNEES
+raw_fao_prod <- read.csv("data_raw/production.csv")
+# Nettoyage et préparation (reprend ton code)
+fao_prod <- raw_fao_prod |>
+  select(Zone, Produit, Élément, Année, Unité, Valeur) |>
+  mutate(
+    Zone = str_trim(Zone),
+    Produit = str_trim(Produit),
+    Élément = str_trim(Élément),
+    Unité = str_trim(Unité),
+    Produit = case_when(
+      Produit == "Maïs" ~ "Mais",
+      Produit == "Blé" ~ "Blé",
+      TRUE ~ Produit
+    ),
+    Élément = case_when(
+      Élément == "Superficie récoltée" ~ "Surface",
+      Élément == "Rendement" ~ "Rendement",
+      Élément == "Production" ~ "Production",
+      TRUE ~ Élément
+    )
+  )
+
+# Pivot
+production <- fao_prod |>
+  select(Zone, Produit, Année, Élément, Valeur) |>
+  pivot_wider(names_from = Élément, values_from = Valeur) |>
+  rename(
+    Pays = Zone,
+    Céréale = Produit,
+    Année = Année,
+    Surface = Surface,
+    Rendement = Rendement,
+    Production = Production
+  )
+```
+
+## Statistiques descriptives : Blé France vs Inde
+
+```{r}
+
+#| echo: false
+france_rdt_ble <- production |>
+  filter(Pays == "France", Céréale == "Blé") |>
+  select(Rendement) 
+
+inde_ble <- production |>
+  filter(Pays == "Inde", Céréale == "Blé") |>
+  select(Surface, Rendement, Production) 
+
+# Fonction calc_stats
+calc_stats <- function(df) {
+  df |> 
+    summarise(
+      Min = min(Rendement, na.rm = TRUE),
+      `1er Qu.` = quantile(Rendement, 0.25, na.rm = TRUE),
+      Médiane = median(Rendement, na.rm = TRUE),
+      Moyenne = mean(Rendement, na.rm = TRUE),
+      `3ème Qu.` = quantile(Rendement, 0.75, na.rm = TRUE),
+      Max = max(Rendement, na.rm = TRUE),
+      `Écart-type` = sd(Rendement, na.rm = TRUE),
+      Variance = var(Rendement, na.rm = TRUE)
+    )
+}
+
+stats_fr <- calc_stats(france_rdt_ble)
+stats_in <- calc_stats(inde_ble)
+
+stats_compare <- bind_rows(
+  stats_fr |> mutate(Pays = "France"),
+  stats_in |> mutate(Pays = "Inde")
+) |> 
+  pivot_longer(
+    cols = -Pays, 
+    names_to = "Indicateur", 
+    values_to = "Valeur"
+  ) |> 
+  pivot_wider(
+    names_from = Pays, 
+    values_from = Valeur
+  )
+
+stats_compare |>
+  gt() |>
+  tab_header(
+    title = "Comparaison Statistique du Rendement",
+    subtitle = "Blé : France vs Inde (Données FAOSTAT)"
+  ) |>
+  fmt_number(
+    columns = c(France, Inde),
+    decimals = 2,
+    sep_mark = " "
+  ) |>
+  cols_label(
+    Indicateur = "Statistique",
+    France = "France (kg/ha)",
+    Inde = "Inde (kg/ha)"
+  ) |>
+  tab_options(
+    heading.background.color = "#2c3e50",
+    column_labels.background.color = "#f2f2f2",
+    table.width = pct(100)
+  )
+```
+
+### Tableau comparatif France/Inde
+
+```{r}
+stats_compare |>
+  gt() |>
+  tab_header(
+    title = "Comparaison Statistique du Rendement",
+    subtitle = "Blé : France vs Inde (Données FAOSTAT)"
+  ) |>
+  fmt_number(
+    columns = c(France, Inde),
+    decimals = 2,
+    sep_mark = " "
+  ) |>
+  cols_label(
+    Indicateur = "Statistique",
+    France = "France (kg/ha)",
+    Inde = "Inde (kg/ha)"
+  ) |>
+  tab_options(
+    heading.background.color = "#2c3e50",
+    column_labels.background.color = "#f2f2f2",
+    table.width = pct(100)
+  )
+```
+
+**On observe une différence importante entre le rendement de la France et de l'Inde. Le rendement de la France est environ 2,6 fois plus grande que celle de l'Inde, et la médiane confirme cette tendance : les 50% des exploitations françaises dépassent 6 373 kg/ha, contre 2 353 kg/ha en Inde.
+De plus, le minimim français soit le pire rendement est 3,3 fois supérieur 
+à celui de l'Inde, et le record français 2,2 fois plus grand qu'en Inde ce 
+qui confirme la productivité plus élevée en France.
+Dans les deux pays, il y a un écart important entre les exploitations
+performantes et les autres. En inde cet écart est plus extrême, la moyenne
+est inférieure à la médiane, ce qui suggère une majorité d'exploitations à faible rendement et une minorité très performante. Mais en Inde,
+la variance 328 fois plus élevée que sa moyenne indique une forte 
+instabilité des récoltes, mais en France, la variance est 3,2 fois 
+supérieure (2,3M>720K), confirmant des disparités plus marquées en France.
+Nous pouvons mieux visualiser grace au boxplot :**
+
+### Boxplot comparatif
+
+```{r}
+#| echo: false
+data_boxplot <- bind_rows(
+  france_rdt_ble |> mutate(Pays = "France"),
+  inde_ble |> mutate(Pays = "Inde")
+)
+ggplot(data = data_boxplot, 
+       aes(x = Pays, y = Rendement, fill = Pays)) +
+  geom_boxplot(alpha = 0.7, outlier.color = "red", outlier.shape = 16) +
+  scale_fill_manual(values = c("France" = "lightgreen", "Inde" = "orange")) +
+  theme_minimal() +
+  labs(
+    title = "Distribution des rendements du Blé",
+    subtitle = "France vs Inde",
+    y = "Rendement (kg/ha)", 
+    x = "Pays"
+  ) +
+  theme(legend.position = "none")
+```
+
+**Le boxplot pour la France est situé très haut sur l'axe des ordonnées, ce
+qui témoigne d'une haute performance, sa boîte est aussi très large, ce qui
+signifie que les exploitations françaises ont des rendements très variables
+(de 4 580 à 7 000 kh/ha pour 50% d'entre elles). De plus, les moustaches 
+sont plus étendues, ce qui confirme la variabilité plus 2levée qu'en Inde. 
+On peut aussi voir avec les moustaches que 25% des exploitations françaises
+les moins performantes en France produisent autant que les 25% les plus 
+performantes en Inde.
+La boîte de l'Inde est plus étroite et plus basse : la majorité des 
+exploitations ont des rendements proches les uns des autres, plus homogène 
+qu'en France mais globalement faibles.
+L'asymétrie dans les deux pays montre que quelques exploitations sont peu
+productives et tirent les moyennes vers le bas.**
+
+### Histogrammes
+
+```{r}
+#| echo: false
+data_hist <- bind_rows(
+  france_rdt_ble |> mutate(Pays = "France"),
+  inde_ble |> mutate(Pays = "Inde")
+)
+ggplot(data = data_hist, 
+       aes(x = Rendement, fill = Pays)) +
+  geom_histogram(bins = 15, color = "white", alpha = 0.8) +
+  facet_wrap(~Pays, scales = "free_x") + 
+  scale_fill_manual(values = c("France" = "steelblue", "Inde" = "orange")) +
+  theme_minimal() +
+  labs(
+    title = "Comparaison de la distribution des rendements de Blé",
+    subtitle = "France vs Inde (Échelles adaptées)",
+    x = "Rendement (kg/ha)",
+    y = "Nombre d'années (Fréquence)"
+  ) +
+  theme(legend.position = "none")
+```
+
+**La France et l'Inde on des profils de rendement radicalement différents,
+reflétant des réalités agricoles opposés. 
+La France produit systématiquement 3 à 6 fois plus de blé que l’Inde, 
+avec une variabilité liée au climat, tandis que l’Inde alterne entre des 
+rendements très bas (sécheresse) et moyens (années favorables), sans jamais
+atteindre les sommets français.
+Pour la France, le pic dominant est à 6 000-6 500 kg/ha, pendant environ 12
+années et le deuxième pic est à 4 000- 4 500 kg/ha pendant environ 6 ans,
+Quelques années à 2 000-3 000 kg/ha et >7 000 kg/ha, ce qui montre une 
+variabilité élevée, mais les rendements toujours élevé.
+L'inde a 2 pics distincts :
+-1 000–1 500 kg/ha (fréquent, ~7 années) → Majorité des années.
+-2 500–3 000 kg/ha (~8 années) → Années/regions favorables.
+L’histogramme montre que la France a des rendements groupés autour de 
+6 000 kg/ha, tandis que l’Inde alterne entre 1 000–1 500 kg/ha et 
+2 500–3 000 kg/ha, sans jamais atteindre les niveaux français. 
+Aucun rendement > 3 500 kg/ha → Plafond bas.
+L’écart est flagrant et systématique.**
+
+## Analyse bivariée : Production vs Surface
+
+**Pour un ingénieur agronome, une question importante peut etre : 
+Comment le pays augmente-t-il sa production ? Est-ce en améliorant ses 
+techniques ou en agrandissant ses terres ? On choisit ici d’étudier les 
+variables Production et Surface.**
+
+```{r}
+#| echo: false
+france_ble_prod_surf <- production |>
+  filter(Pays == "France", Céréale == "Blé") |>
+  select(Production, Surface) 
+
+inde_ble_prod_surf <- production |>
+  filter(Pays == "Inde", Céréale == "Blé") |>
+  select(Production, Surface) 
+
+data_nuage <- bind_rows(
+  france_ble_prod_surf |> mutate(Pays = "France"),
+  inde_ble_prod_surf |> mutate(Pays = "Inde")
+)
+
+ggplot(data = data_nuage, 
+       aes(x = Surface, y = Production, color = Pays)) +
+  geom_point(alpha = 0.6, size = 2) +
+  geom_smooth(method = "lm", se = FALSE, linetype = "dashed") +
+  facet_wrap(~Pays, scales = "free") +
+  scale_color_manual(values = c("France" = "steelblue", "Inde" = "orange")) +
+  theme_minimal() +
+  labs(
+    title = "Relation entre Surface récoltée et Production de Blé",
+    subtitle = "Comparaison France vs Inde",
+    x = "Surface (ha)",
+    y = "Production (tonnes)"
+  ) +
+  theme(legend.position = "none")
+```
+
+Le nuage de points révèle que pour la France et pour l'Inde, la relation
+semble être très linéaire. L'augmentation de la production est donc fortement
+corrélée à la gestion des surfaces, mais malgré une surface bien plus grande, 
+a une production moins efficace (rendements 2–3x inférieurs) et plus variable.
+L’Inde récolte plus de blé en volume total (jusqu’à 90M tonnes) 
+grâce à sa surface immense, mais son rendement à l’hectare reste très faible 
+par rapport à la France.
+Alors que la France a une relation surface-production très stable grâce à des 
+rendements élevés et homogènes (~7 000 kg/ha).
+
+```{r}
+#| echo: false
+reg_fr <- lm(Production ~ Surface, data = france_ble_prod_surf)
+cor_fr <- cor(france_ble_prod_surf$Surface, france_ble_prod_surf$Production)
+reg_ke <- lm(Production ~ Surface, data = inde_ble_prod_surf)
+cor_ke <- cor(inde_ble_prod_surf$Surface, inde_ble_prod_surf$Production)
+
+summary_tbl <- tibble(
+  Pays = c("France", "Inde"),
+  Pente = c(round(coef(reg_fr)[2], 2), round(coef(reg_ke)[2], 2)),
+  Intercept = c(round(coef(reg_fr)[1], 2), round(coef(reg_ke)[1], 2)),
+  Correlation = c(round(cor_fr, 3), round(cor_ke, 3))
+)
+datatable(summary_tbl)
+```
+
+Avec un coefficient de corrélation très proche de 1 (0.92), la France affiche 
+une corrélation quasi-parfaite. De même pour l'Inde qui a un coefficient
+de corrélation très proche de 1 également (0,96).
+Les deux pentes sont raides, celle de la France l'est légèrement plus que 
+celle de l'Inde ce qui signifie que chaque hectare "rapporte" un peu plus
+de tonnes qu'en Inde. De plus, en France les rendements sont élevés et stables
+avec peu de gaspillage de surface tandis qu'en Inde, la surface est immense, 
+mais les rendements 2-3x inférieurs.
+
+#Conclusion
+
+
+L’analyse montre un écart très marqué entre la France et l’Inde concernant la 
+culture du blé. La France affiche des rendements par hectare bien supérieurs, 
+une plus grande homogénéité et une productivité nettement plus élevée. 
+À l’inverse, l’Inde exploite des surfaces bien plus vastes mais avec des 
+rendements globalement faibles et peu de variabilité.
+
+Les statistiques révèlent que la France surpasse l’Inde à la fois en termes 
+de moyenne, de minimum et de maximum atteints. La relation entre surface 
+cultivée et production est forte dans les deux pays, mais chaque hectare 
+français "rapporte" bien plus de blé que son équivalent indien.
+
+En résumé, la France illustre la réussite d’une agriculture intensive et 
+performante, alors que l’Inde, malgré son importance agricole, doit relever 
+les défis d’une meilleure productivité pour améliorer sa sécurité alimentaire.
+
+---
+
+
+

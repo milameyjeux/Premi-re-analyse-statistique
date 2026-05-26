@@ -1,7 +1,7 @@
 
 ---
 
-# **2. Nuage et point et coefficient de corrélation**  
+# **2. Nuage de point et coefficient de corrélation**  
 
 
 ---
